@@ -1,0 +1,228 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Cliente {
+  id        String   @id @default(cuid())
+  nome      String
+  email     String?
+  telefone  String?
+  ativo     Boolean  @default(true)
+  
+  // Relacionamentos
+  plataformas Plataforma[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("clientes")
+}
+
+model Colaborador {
+  id        String   @id @default(cuid())
+  nome      String
+  email     String   @unique
+  cargo     String
+  status    StatusColaborador @default(ATIVO)
+  dataEntrada DateTime @default(now())
+  dataSaida   DateTime?
+  
+  // Relacionamentos
+  acessos   AcessoPlataforma[]
+  historicoSenhas HistoricoSenha[]
+  visualizacoesSenha VisualizacaoSenha[]
+  ticketsSenha TicketSenha[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("colaboradores")
+}
+
+model Plataforma {
+  id          String   @id @default(cuid())
+  nome        String
+  tipo        TipoPlataforma
+  urlLogin    String?
+  emailUtilizado String?
+  senhaEncriptada String
+  custoMensal Float    @default(0)
+  ultimaAtualizacaoSenha DateTime @default(now())
+  frequenciaAtualizacao Int @default(90) // dias
+  observacoes String?
+  
+  // Novos campos para vinculação
+  vinculo     VinculoPlataforma @default(UNICO)
+  clienteId   String?
+  
+  // Relacionamentos
+  cliente     Cliente? @relation(fields: [clienteId], references: [id])
+  acessos     AcessoPlataforma[]
+  historicoSenhas HistoricoSenha[]
+  custos      CustoPlataforma[]
+  visualizacoesSenha VisualizacaoSenha[]
+  ticketsSenha TicketSenha[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("plataformas")
+}
+
+model AcessoPlataforma {
+  id            String   @id @default(cuid())
+  colaboradorId String
+  plataformaId  String
+  dataInicio    DateTime @default(now())
+  dataFim       DateTime?
+  ativo         Boolean  @default(true)
+  
+  // Relacionamentos
+  colaborador   Colaborador @relation(fields: [colaboradorId], references: [id], onDelete: Cascade)
+  plataforma    Plataforma  @relation(fields: [plataformaId], references: [id], onDelete: Cascade)
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([colaboradorId, plataformaId])
+  @@map("acessos_plataforma")
+}
+
+model HistoricoSenha {
+  id            String   @id @default(cuid())
+  plataformaId  String
+  colaboradorId String?  // quem fez a alteração
+  senhaAnterior String?
+  novaSenha     String
+  motivoMudanca String?
+  dataAlteracao DateTime @default(now())
+  notificouColaboradores Boolean @default(false)
+  tipoNotificacao String? // email, discord, ambos
+  
+  // Relacionamentos
+  plataforma    Plataforma   @relation(fields: [plataformaId], references: [id], onDelete: Cascade)
+  colaborador   Colaborador? @relation(fields: [colaboradorId], references: [id])
+  
+  @@map("historico_senhas")
+}
+
+model VisualizacaoSenha {
+  id            String   @id @default(cuid())
+  plataformaId  String
+  colaboradorId String
+  dataVisualizacao DateTime @default(now())
+  ip            String?
+  userAgent     String?
+  
+  // Relacionamentos
+  plataforma    Plataforma  @relation(fields: [plataformaId], references: [id], onDelete: Cascade)
+  colaborador   Colaborador @relation(fields: [colaboradorId], references: [id], onDelete: Cascade)
+  
+  @@map("visualizacoes_senha")
+}
+
+model TicketSenha {
+  id            String   @id @default(cuid())
+  plataformaId  String
+  colaboradorId String
+  descricaoProblema String
+  status        StatusTicket @default(ABERTO)
+  dataAbertura  DateTime @default(now())
+  dataResolucao DateTime?
+  observacoesResolucao String?
+  
+  // Relacionamentos
+  plataforma    Plataforma  @relation(fields: [plataformaId], references: [id], onDelete: Cascade)
+  colaborador   Colaborador @relation(fields: [colaboradorId], references: [id], onDelete: Cascade)
+  
+  @@map("tickets_senha")
+}
+
+model CustoPlataforma {
+  id           String   @id @default(cuid())
+  plataformaId String
+  valor        Float
+  moeda        String   @default("BRL")
+  dataInicio   DateTime
+  dataFim      DateTime?
+  ativo        Boolean  @default(true)
+  observacoes  String?
+  
+  // Relacionamentos
+  plataforma   Plataforma @relation(fields: [plataformaId], references: [id], onDelete: Cascade)
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("custos_plataforma")
+}
+
+model ConfiguracaoSistema {
+  id               String   @id @default(cuid())
+  chaveMestre      String?  // senha mestre para visualizar senhas
+  webhookClickup   String?  // webhook para integração com ClickUp
+  webhookDiscord   String?  // webhook para notificações Discord
+  emailAlertas     String?  // email para envio de alertas
+  apiKeyEmail      String?  // API key para serviço de email (SendGrid, etc)
+  diasAvisoExpiracao Int    @default(7) // dias antes de expirar para enviar alerta
+  
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@map("configuracao_sistema")
+}
+
+model LogAcesso {
+  id           String   @id @default(cuid())
+  usuario      String   // email ou identificador do usuário
+  acao         String   // ação realizada
+  entidade     String   // plataforma, colaborador, etc.
+  entidadeId   String?  // ID da entidade afetada
+  ip           String?
+  userAgent    String?
+  timestamp    DateTime @default(now())
+
+  @@map("log_acessos")
+}
+
+enum StatusColaborador {
+  ATIVO
+  DEMITIDO
+  SUSPENSO
+}
+
+enum TipoPlataforma {
+  MIDIA         // Google Ads, Meta, etc.
+  CRM           // RD Station, HubSpot, etc.
+  DOMINIO       // Registro.br, GoDaddy, etc.
+  EMAIL         // Google Workspace, Outlook, etc.
+  DESIGN        // Figma, Adobe, etc.
+  GESTAO        // ClickUp, Trello, etc.
+  ANALISE       // Google Analytics, Hotjar, etc.
+  HOSPEDAGEM    // Vercel, AWS, etc.
+  OUTROS
+}
+
+enum VinculoPlataforma {
+  UNICO         // Sistema interno da agência
+  CLIENTE       // Relacionado a um cliente específico
+}
+
+enum StatusTicket {
+  ABERTO
+  EM_ANDAMENTO
+  RESOLVIDO
+  CANCELADO
+}
