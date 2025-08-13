@@ -161,20 +161,28 @@ export default function PlataformasPage() {
     try {
       updateLastActivity()
       
+      // Debug: Verificar variáveis de ambiente
+      console.log('🔍 Debug - SUPABASE_URL:', process.env.NEXT_PUBLIC_SUPABASE_URL)
+      console.log('🔍 Debug - SUPABASE_KEY exists:', !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+      
       // Carregar dados reais do Supabase
       const viewName = isAdminByEmail() ? 'plataformas' : 'plataformas'
+      console.log('🔍 Debug - Tentando conectar com Supabase...')
       const { data: plataformasData, error: plataformasError } = await supabase
         .from(viewName)
         .select('*')
         .order('nome', { ascending: true })
 
       if (plataformasError) {
-        console.error('Erro ao carregar plataformas:', plataformasError)
+        console.error('🚨 Erro ao carregar plataformas:', plataformasError)
+        console.log('🔄 Usando dados mockados como fallback')
         // Fallback para dados mockados
         setPlataformas(mockPlataformas)
         setClientes(mockClientes)
         return
       }
+      
+      console.log('✅ Dados carregados do Supabase:', plataformasData?.length, 'plataformas')
 
       // Carregar clientes
       const { data: clientesData = [], error: clientesError } = await supabase
