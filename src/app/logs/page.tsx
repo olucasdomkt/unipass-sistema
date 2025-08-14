@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -8,6 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Search, Filter, Download, Calendar, User, Activity } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 import { useAuth } from '@/lib/auth-context'
+import { supabase } from '@/lib/supabase'
+import { toast } from '@/components/ui/toast'
 
 interface LogEntry {
   id: string
@@ -19,7 +21,7 @@ interface LogEntry {
   ip: string
   userAgent: string
   timestamp: Date
-  tipo: 'INFO' | 'WARNING' | 'ERROR' | 'SUCCESS'
+  tipo: 'INFO' | 'WARNING' | 'ERROR' | 'SUCCESS' | 'AUTENTICACAO' | 'SENHA' | 'PLATAFORMA' | 'COLABORADOR' | 'PROBLEMA' | 'SISTEMA'
 }
 
 // Dados mockados de logs
@@ -166,23 +168,100 @@ function getLogIcon(acao: string) {
 }
 
 export default function LogsPage() {
-  const { isAdmin } = useAuth()
+  const { isAdmin, updateLastActivity } = useAuth()
+  const [logs, setLogs] = useState<LogEntry[]>([])
+  const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedAction, setSelectedAction] = useState('TODAS')
   const [selectedType, setSelectedType] = useState('TODOS')
   const [selectedUser, setSelectedUser] = useState('TODOS')
 
+  useEffect(() => {
+    loadLogs()
+  }, [])
+
+  const loadLogs = async () => {
+    try {
+      updateLastActivity()
+      
+      const { data: logsData, error } = await supabase
+        .from('log_acessos')
+        .select('*')
+        .order('timestamp', { ascending: false })
+        .limit(100)
+
+      if (error) throw error
+
+      // Transformar dados para o formato esperado
+      const transformedLogs: LogEntry[] = logsData.map(log => ({
+        id: log.id,
+        usuario: log.usuario,
+        acao: log.acao,
+        entidade: log.entidade,
+        entidadeId: log.entidade_id,
+        detalhes: getLogDetails(log.acao, log.entidade),
+        ip: log.ip || 'N/A',
+        userAgent: log.user_agent || 'N/A',
+        timestamp: log.timestamp,
+        tipo: getLogType(log.acao)
+      }))
+
+      setLogs(transformedLogs)
+    } catch (error) {
+      console.error('Erro ao carregar logs:', error)
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível carregar os logs',
+        variant: 'destructive'
+      })
+      // Fallback para dados mock em caso de erro
+      setLogs(logsData)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const getLogDetails = (acao: string, entidade: string) => {
+    switch (acao) {
+      case 'LOGIN':
+        return 'Usuário fez login no sistema'
+      case 'LOGOUT':
+        return 'Usuário fez logout do sistema'
+      case 'VISUALIZAR_SENHA':
+        return `Visualizou senha da ${entidade}`
+      case 'CRIAR_PLATAFORMA':
+        return `Criou nova ${entidade}`
+      case 'EDITAR_PLATAFORMA':
+        return `Editou ${entidade}`
+      case 'EDITAR_COLABORADOR':
+        return `Editou ${entidade}`
+      case 'REPORTAR_PROBLEMA':
+        return `Reportou problema na ${entidade}`
+      default:
+        return `${acao} em ${entidade}`
+    }
+  }
+
+  const getLogType = (acao: string) => {
+    if (['LOGIN', 'LOGOUT'].includes(acao)) return 'AUTENTICACAO'
+    if (['VISUALIZAR_SENHA'].includes(acao)) return 'SENHA'
+    if (['CRIAR_PLATAFORMA', 'EDITAR_PLATAFORMA'].includes(acao)) return 'PLATAFORMA'
+    if (['EDITAR_COLABORADOR'].includes(acao)) return 'COLABORADOR'
+    if (['REPORTAR_PROBLEMA'].includes(acao)) return 'PROBLEMA'
+    return 'SISTEMA'
+  }
+
   // Lista de usuários únicos para filtro
   const usuarios = useMemo(() => {
-    const uniqueUsers = Array.from(new Set(logsData.map(log => log.usuario)))
+    const uniqueUsers = Array.from(new Set(logs.map(log => log.usuario)))
     return [
       { value: 'TODOS', label: 'Todos os usuários' },
       ...uniqueUsers.map(user => ({ value: user, label: user }))
     ]
-  }, [])
+  }, [logs])
 
   const logsFiltrados = useMemo(() => {
-    let filtered = logsData.filter(log => {
+    let filtered = logs.filter(log => {
       const matchSearch = !searchTerm || 
         log.detalhes.toLowerCase().includes(searchTerm.toLowerCase()) ||
         log.usuario.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -196,8 +275,8 @@ export default function LogsPage() {
     })
 
     // Ordenar por data mais recente
-    return filtered.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
-  }, [searchTerm, selectedAction, selectedType, selectedUser])
+    return filtered.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+  }, [logs, searchTerm, selectedAction, selectedType, selectedUser])
 
   const handleExportLogs = () => {
     console.log('Exportando logs...', logsFiltrados)
@@ -388,7 +467,12 @@ export default function LogsPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {logsFiltrados.length > 0 ? (
+              {loading ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                  <p className="text-gray-500 mt-2">Carregando logs...</p>
+                </div>
+              ) : logsFiltrados.length > 0 ? (
                 logsFiltrados.map((log) => (
                   <div key={log.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
                     <div className="flex items-start justify-between">

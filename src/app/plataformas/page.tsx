@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from 'react'
-import { Search, Plus, Filter, ExternalLink, Eye, AlertTriangle, Clock, CheckCircle, XCircle, Edit } from 'lucide-react'
+import { Search, Plus, Filter, ExternalLink, Eye, AlertTriangle, Clock, CheckCircle, XCircle, Edit, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -13,6 +13,7 @@ import { PlataformaDrawer } from '@/components/plataformas/plataforma-drawer'
 import { PasswordDrawer } from '@/components/plataformas/password-drawer'
 import { ProblemDrawer } from '@/components/plataformas/problem-drawer'
 import { ClientDrawer } from '@/components/plataformas/client-drawer'
+import { AccessControlDrawer } from '@/components/plataformas/access-control-drawer'
 import { toast } from '@/components/ui/toast'
 
 interface PlataformaWithClient {
@@ -147,13 +148,15 @@ export default function PlataformasPage() {
   const [clientes, setClientes] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
-  const [selectedClient, setSelectedClient] = useState<string>('')
+  const [selectedClient, setSelectedClient] = useState<string>('todos')
+  const [selectedTipo, setSelectedTipo] = useState<string>('todos')
   
   // Drawer states
   const [showPlataformaDrawer, setShowPlataformaDrawer] = useState(false)
   const [showClientDrawer, setShowClientDrawer] = useState(false)
   const [showPasswordDrawer, setShowPasswordDrawer] = useState(false)
   const [showProblemDrawer, setShowProblemDrawer] = useState(false)
+  const [showAccessControlDrawer, setShowAccessControlDrawer] = useState(false)
   const [selectedPlataforma, setSelectedPlataforma] = useState<PlataformaWithClient | null>(null)
 
   useEffect(() => {
@@ -268,7 +271,7 @@ export default function PlataformasPage() {
                          plataforma.email_utilizado?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          plataforma.cliente?.nome.toLowerCase().includes(searchTerm.toLowerCase())
     
-    const matchesClient = !selectedClient || 
+    const matchesClient = selectedClient === 'todos' || 
                          (selectedClient === 'unico' && plataforma.vinculo === 'UNICO') ||
                          (plataforma.cliente_id === selectedClient)
     
@@ -292,6 +295,12 @@ export default function PlataformasPage() {
     updateLastActivity()
     setSelectedPlataforma(plataforma)
     setShowProblemDrawer(true)
+  }
+
+  const handleAccessControl = (plataforma: PlataformaWithClient) => {
+    updateLastActivity()
+    setSelectedPlataforma(plataforma)
+    setShowAccessControlDrawer(true)
   }
 
   const handleNewPlataforma = () => {
@@ -398,9 +407,9 @@ export default function PlataformasPage() {
                 <SelectValue placeholder="Todos os clientes" />
               </div>
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="">Todos os clientes</SelectItem>
-              <SelectItem value="unico">Único</SelectItem>
+                          <SelectContent>
+                <SelectItem value="todos">Todos os clientes</SelectItem>
+                <SelectItem value="unico">Único</SelectItem>
               {clientes.map((cliente) => (
                 <SelectItem key={cliente.id} value={cliente.id}>
                   {cliente.nome}
@@ -540,6 +549,18 @@ export default function PlataformasPage() {
                       <Button
                         variant="outline"
                         size="sm"
+                        onClick={() => handleAccessControl(plataforma)}
+                        className="flex items-center gap-1 text-blue-600 border-blue-200 hover:bg-blue-50"
+                      >
+                        <Users className="h-3 w-3" />
+                        Acessos
+                      </Button>
+                    )}
+
+                    {isAdminByEmail() && (
+                      <Button
+                        variant="outline"
+                        size="sm"
                         onClick={() => handleEditPlataforma(plataforma)}
                         className="flex items-center gap-1"
                       >
@@ -589,6 +610,16 @@ export default function PlataformasPage() {
         isOpen={showClientDrawer}
         onClose={() => setShowClientDrawer(false)}
         onSuccess={loadData}
+      />
+
+      <AccessControlDrawer
+        isOpen={showAccessControlDrawer}
+        onClose={() => {
+          setShowAccessControlDrawer(false)
+          setSelectedPlataforma(null)
+        }}
+        onSuccess={loadData}
+        plataforma={selectedPlataforma}
       />
     </div>
   )

@@ -32,8 +32,8 @@ export default function ColaboradoresPage() {
   const [equipes, setEquipes] = useState<Equipe[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
-  const [statusFilter, setStatusFilter] = useState<string>('')
-  const [equipeFilter, setEquipeFilter] = useState<string>('')
+  const [statusFilter, setStatusFilter] = useState<string>('todos')
+  const [equipeFilter, setEquipeFilter] = useState<string>('todas')
   
   // Dialog states
   const [showColaboradorDrawer, setShowColaboradorDrawer] = useState(false)
@@ -116,8 +116,8 @@ export default function ColaboradoresPage() {
     const matchesSearch = colaborador.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          colaborador.email.toLowerCase().includes(searchTerm.toLowerCase())
     
-    const matchesStatus = !statusFilter || colaborador.status === statusFilter
-    const matchesEquipe = !equipeFilter || colaborador.equipe_id === equipeFilter
+    const matchesStatus = statusFilter === 'todos' || colaborador.status === statusFilter
+    const matchesEquipe = equipeFilter === 'todas' || colaborador.equipe_id === equipeFilter
     
     return matchesSearch && matchesStatus && matchesEquipe
   })
@@ -290,7 +290,7 @@ export default function ColaboradoresPage() {
             <SelectValue placeholder="Filtrar por status" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Todos os status</SelectItem>
+            <SelectItem value="todos">Todos os status</SelectItem>
             {statusColaborador.map((status) => (
               <SelectItem key={status.value} value={status.value}>
                 {status.label}
@@ -304,7 +304,7 @@ export default function ColaboradoresPage() {
             <SelectValue placeholder="Filtrar por equipe" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Todas as equipes</SelectItem>
+            <SelectItem value="todas">Todas as equipes</SelectItem>
             {equipes.map((equipe) => (
               <SelectItem key={equipe.id} value={equipe.id}>
                 {equipe.nome}
