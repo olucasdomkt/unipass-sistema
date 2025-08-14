@@ -19,6 +19,9 @@ interface AuthContextType {
   getRemainingTime: () => number
   sessionTimeout: number
   setSessionTimeout: (timeout: number) => void
+  getUserSystemPassword: (email: string) => string
+  getSystemPasswords: () => Array<{email: string, password: string, role: string}> | null
+  changeAdminPassword: (email: string, newPassword: string) => boolean
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -180,19 +183,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const login = async (email: string, password: string): Promise<boolean> => {
-    // Simulação de login - normalmente seria uma chamada à API
+    // Sistema de senhas definidas pelo sistema
     const foundUser = mockUsers.find(u => u.email === email && u.isActive)
     
-    if (foundUser && password === 'admin123') {
-      const now = new Date()
-      setUser(foundUser)
-      setLastActivity(now)
-      localStorage.setItem('unipass-user', JSON.stringify(foundUser))
-      localStorage.setItem('unipass-activity', now.toISOString())
-      return true
+    if (foundUser) {
+      // Verificar senha do sistema para cada usuário
+      const validPassword = getUserSystemPassword(foundUser.email)
+      
+      if (password === validPassword) {
+        const now = new Date()
+        setUser(foundUser)
+        setLastActivity(now)
+        localStorage.setItem('unipass-user', JSON.stringify(foundUser))
+        localStorage.setItem('unipass-activity', now.toISOString())
+        return true
+      }
     }
     
     return false
+  }
+
+  // Função para obter a senha do sistema para cada usuário
+  const getUserSystemPassword = (email: string): string => {
+    const systemPasswords: { [key: string]: string } = {
+      'admin@unipass.com': 'UniP@ss2024!Admin',
+      'user@unipass.com': 'UniP@ss2024!User',
+      'lucas@agencia.com': 'UniP@ss2024!Lucas',
+    }
+    
+    return systemPasswords[email.toLowerCase()] || ''
   }
 
   const logout = () => {
@@ -278,6 +297,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('unipass-session-timeout', timeout.toString())
   }
 
+  // Função para administradores obterem as senhas do sistema
+  const getSystemPasswords = () => {
+    if (!isAdminByEmail()) return null
+    
+    return [
+      { email: 'admin@unipass.com', password: 'UniP@ss2024!Admin', role: 'ADMIN' },
+      { email: 'user@unipass.com', password: 'UniP@ss2024!User', role: 'USER' },
+      { email: 'lucas@agencia.com', password: 'UniP@ss2024!Lucas', role: 'ADMIN' },
+    ]
+  }
+
+  // Função para alterar senha do administrador
+  const changeAdminPassword = (email: string, newPassword: string): boolean => {
+    if (!isAdminByEmail()) return false
+    
+    // Simular atualização no banco de dados
+    // Em produção, isso seria uma chamada à API/Supabase
+    console.log(`Senha alterada para ${email}: ${newPassword}`)
+    
+    return true
+  }
+
   const value: AuthContextType = {
     user,
     login,
@@ -292,7 +333,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     showCosts,
     getRemainingTime,
     sessionTimeout,
-    setSessionTimeout
+    setSessionTimeout,
+    getUserSystemPassword,
+    getSystemPasswords,
+    changeAdminPassword
   }
 
   const handleSessionExpiredLogin = async (email: string, password: string): Promise<boolean> => {

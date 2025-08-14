@@ -1,16 +1,18 @@
 "use client"
 
 import { useState, useEffect } from 'react'
-import { Search, Plus, Filter, ExternalLink, Eye, AlertTriangle, Clock, CheckCircle, XCircle } from 'lucide-react'
+import { Search, Plus, Filter, ExternalLink, Eye, AlertTriangle, Clock, CheckCircle, XCircle, Edit } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useAuth } from '@/lib/auth-context'
 import { supabase } from '@/lib/supabase'
 import { PlataformaDrawer } from '@/components/plataformas/plataforma-drawer'
 import { PasswordDrawer } from '@/components/plataformas/password-drawer'
 import { ProblemDrawer } from '@/components/plataformas/problem-drawer'
+import { ClientDrawer } from '@/components/plataformas/client-drawer'
 import { toast } from '@/components/ui/toast'
 
 interface PlataformaWithClient {
@@ -149,6 +151,7 @@ export default function PlataformasPage() {
   
   // Drawer states
   const [showPlataformaDrawer, setShowPlataformaDrawer] = useState(false)
+  const [showClientDrawer, setShowClientDrawer] = useState(false)
   const [showPasswordDrawer, setShowPasswordDrawer] = useState(false)
   const [showProblemDrawer, setShowProblemDrawer] = useState(false)
   const [selectedPlataforma, setSelectedPlataforma] = useState<PlataformaWithClient | null>(null)
@@ -336,17 +339,17 @@ export default function PlataformasPage() {
     if (plataforma.favicon_url) {
       return plataforma.favicon_url
     }
-    
+
     if (plataforma.url_login) {
       try {
         const url = new URL(plataforma.url_login)
-        return `${url.protocol}//${url.hostname}/favicon.ico`
+        return `https://www.google.com/s2/favicons?domain=${url.hostname}&sz=32`
       } catch {
-        return null
+        return `https://www.google.com/s2/favicons?domain=${plataforma.nome.toLowerCase()}.com&sz=32`
       }
     }
-    
-    return null
+
+    return `https://www.google.com/s2/favicons?domain=${plataforma.nome.toLowerCase()}.com&sz=32`
   }
 
   if (loading) {
@@ -388,20 +391,36 @@ export default function PlataformasPage() {
         </div>
         
         <div className="flex items-center gap-2">
-          <Filter className="h-4 w-4 text-gray-400" />
-          <select
-            value={selectedClient}
-            onChange={(e) => setSelectedClient(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value="">Todos os clientes</option>
-            <option value="unico">Único</option>
-            {clientes.map((cliente) => (
-              <option key={cliente.id} value={cliente.id}>
-                {cliente.nome}
-              </option>
-            ))}
-          </select>
+          <Select value={selectedClient} onValueChange={setSelectedClient}>
+            <SelectTrigger className="w-48">
+              <div className="flex items-center gap-2">
+                <Filter className="h-4 w-4 text-gray-400" />
+                <SelectValue placeholder="Todos os clientes" />
+              </div>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">Todos os clientes</SelectItem>
+              <SelectItem value="unico">Único</SelectItem>
+              {clientes.map((cliente) => (
+                <SelectItem key={cliente.id} value={cliente.id}>
+                  {cliente.nome}
+                </SelectItem>
+              ))}
+              {isAdminByEmail() && (
+                <div className="border-t mt-1 pt-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowClientDrawer(true)}
+                    className="w-full justify-start text-blue-600 hover:text-blue-700"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Cadastrar cliente
+                  </Button>
+                </div>
+              )}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -421,7 +440,11 @@ export default function PlataformasPage() {
             const faviconUrl = getFaviconUrl(plataforma)
             
             return (
-              <Card key={plataforma.id} className="p-4 hover:shadow-md transition-shadow">
+              <Card 
+                key={plataforma.id} 
+                className="p-4 hover:shadow-md transition-shadow cursor-pointer"
+                onClick={() => handleOpenUrl(plataforma.url_login)}
+              >
                 <div className="flex items-center gap-4">
                   {/* Favicon */}
                   <div className="w-10 h-10 flex-shrink-0">
@@ -478,7 +501,7 @@ export default function PlataformasPage() {
                   </Tooltip>
 
                   {/* Actions */}
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                     {plataforma.url_login && (
                       <Button
                         variant="outline"
@@ -560,6 +583,12 @@ export default function PlataformasPage() {
         }}
         onSuccess={loadData}
         plataforma={selectedPlataforma}
+      />
+
+      <ClientDrawer
+        isOpen={showClientDrawer}
+        onClose={() => setShowClientDrawer(false)}
+        onSuccess={loadData}
       />
     </div>
   )

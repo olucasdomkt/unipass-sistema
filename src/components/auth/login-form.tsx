@@ -50,8 +50,8 @@ export function LoginForm() {
     }
   }
 
-  const quickLogin = (email: string) => {
-    setFormData({ email, password: 'admin123' })
+  const quickLogin = (email: string, password: string) => {
+    setFormData({ email, password })
   }
 
   return (
@@ -130,22 +130,29 @@ export function LoginForm() {
             <h3 className="text-sm font-medium text-gray-700 mb-3">Contas de demonstração:</h3>
             <div className="space-y-2">
               <button
-                onClick={() => quickLogin('admin@unipass.com')}
+                onClick={() => quickLogin('admin@unipass.com', 'UniP@ss2024!Admin')}
                 className="w-full text-left p-2 rounded text-sm bg-white border border-gray-200 hover:bg-gray-50 transition-colors"
               >
                 <div className="font-medium text-gray-900">👑 Administrador</div>
                 <div className="text-gray-600">admin@unipass.com</div>
               </button>
               <button
-                onClick={() => quickLogin('user@unipass.com')}
+                onClick={() => quickLogin('user@unipass.com', 'UniP@ss2024!User')}
                 className="w-full text-left p-2 rounded text-sm bg-white border border-gray-200 hover:bg-gray-50 transition-colors"
               >
                 <div className="font-medium text-gray-900">👤 Usuário</div>
                 <div className="text-gray-600">user@unipass.com</div>
               </button>
+              <button
+                onClick={() => quickLogin('lucas@agencia.com', 'UniP@ss2024!Lucas')}
+                className="w-full text-left p-2 rounded text-sm bg-white border border-gray-200 hover:bg-gray-50 transition-colors"
+              >
+                <div className="font-medium text-gray-900">👨‍💻 Lucas</div>
+                <div className="text-gray-600">lucas@agencia.com</div>
+              </button>
             </div>
             <p className="text-xs text-gray-500 mt-3">
-              Senha para ambos: <code className="bg-gray-200 px-1 rounded">admin123</code>
+              Senhas controladas pelo sistema (clique nos botões para preencher automaticamente)
             </p>
           </div>
         </div>

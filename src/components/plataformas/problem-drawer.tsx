@@ -103,7 +103,7 @@ export function ProblemDrawer({ isOpen, onClose, onSuccess, plataforma }: Proble
           </div>
 
           {/* Content */}
-          <div className="flex-1 p-6 space-y-6">
+          <div className="flex-1 p-6 space-y-6 overflow-y-auto max-h-[calc(100vh-140px)]">
             {/* Platform Info */}
             <div className="bg-gray-50 p-4 rounded-lg">
               <h3 className="font-medium text-gray-900 mb-2">{plataforma.nome}</h3>

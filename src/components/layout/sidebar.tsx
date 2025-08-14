@@ -61,7 +61,7 @@ export function Sidebar() {
       name: 'Senhas',
       href: '/senhas',
       icon: Key,
-      adminOnly: false,
+      adminOnly: true,
     },
     {
       name: 'Colaboradores',
@@ -87,12 +87,7 @@ export function Sidebar() {
       icon: Settings,
       adminOnly: true,
     },
-    {
-      name: 'Ajuda',
-      href: '/ajuda',
-      icon: CircleQuestionMark,
-      adminOnly: false,
-    },
+
   ]
 
   const filteredNavItems = navigationItems.filter(item => {

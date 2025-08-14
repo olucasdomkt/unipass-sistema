@@ -139,7 +139,7 @@ export default function ColaboradoresPage() {
     return statusInfo || { label: status, variant: 'secondary' as const }
   }
 
-  const formatDate = (dateString: string) => {
+  const formatDateLocal = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('pt-BR', {
       day: '2-digit',
       month: '2-digit',
@@ -368,9 +368,9 @@ export default function ColaboradoresPage() {
 
                     <div className="flex items-center gap-2">
                       <div className="text-right text-xs text-gray-500">
-                        <p>Entrada: {formatDate(colaborador.data_entrada)}</p>
+                        <p>Entrada: {formatDateLocal(colaborador.data_entrada)}</p>
                         {colaborador.data_saida && (
-                          <p>Saída: {formatDate(colaborador.data_saida)}</p>
+                          <p>Saída: {formatDateLocal(colaborador.data_saida)}</p>
                         )}
                       </div>
                       
