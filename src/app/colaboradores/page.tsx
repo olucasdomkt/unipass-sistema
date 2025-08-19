@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { formatDate } from '@/lib/utils'
+// import { formatDate } from '@/lib/utils' // Removido para evitar conflito
 import { supabase, Colaborador, Equipe } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth-context'
 import { toast } from '@/components/ui/toast'

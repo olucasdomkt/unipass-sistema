@@ -25,17 +25,18 @@ import {
 } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { useAuth } from '@/lib/auth-context'
+import { supabase } from '@/lib/supabase'
 
-// Dados mockados para demonstração
-const dashboardData = {
-  totalPlataformas: 42,
-  totalColaboradores: 12,
-  colaboradoresAtivos: 10,
-  senhasExpirando: 5,
-  senhasExpiradas: 2,
-  custoMensal: 15420.50,
-  ticketsAbertos: 3,
-  visualizacoesHoje: 28
+// Interface para dados do dashboard
+interface DashboardData {
+  totalPlataformas: number
+  totalColaboradores: number
+  colaboradoresAtivos: number
+  senhasExpirando: number
+  senhasExpiradas: number
+  custoMensal: number
+  ticketsAbertos: number
+  visualizacoesHoje: number
 }
 
 const plataformasRecentes = [
@@ -64,26 +65,88 @@ const alertasImportantes = [
 ]
 
 export default function Dashboard() {
-  const { user, isAdmin } = useAuth()
+  const { user, isAdmin, isAdminByEmail } = useAuth()
   const router = useRouter()
   // Toast função já importada diretamente
   const quickSearch = useQuickSearch()
   const [isLoading, setIsLoading] = useState(true)
+  const [dashboardData, setDashboardData] = useState<DashboardData>({
+    totalPlataformas: 0,
+    totalColaboradores: 0,
+    colaboradoresAtivos: 0,
+    senhasExpirando: 0,
+    senhasExpiradas: 0,
+    custoMensal: 0,
+    ticketsAbertos: 0,
+    visualizacoesHoje: 0
+  })
+
+  // Função para carregar dados do dashboard
+  const loadDashboardData = async () => {
+    try {
+      const [
+        plataformasRes,
+        colaboradoresRes,
+        ticketsRes,
+        visualizacoesRes
+      ] = await Promise.all([
+        supabase.from('plataformas').select('*'),
+        supabase.from('colaboradores').select('*'),
+        supabase.from('tickets_senha').select('*').eq('status', 'ABERTO'),
+        supabase.from('visualizacoes_senha').select('*').gte('data_visualizacao', new Date().toISOString().split('T')[0])
+      ])
+
+      // Calcular estatísticas
+      const plataformas = plataformasRes.data || []
+      const colaboradores = colaboradoresRes.data || []
+      const tickets = ticketsRes.data || []
+      const visualizacoesHoje = visualizacoesRes.data || []
+
+      // Calcular senhas expirando/expiradas
+      const agora = new Date()
+      let senhasExpirando = 0
+      let senhasExpiradas = 0
+      let custoTotal = 0
+
+      plataformas.forEach((plataforma: any) => {
+        const ultimaAtualizacao = new Date(plataforma.ultima_atualizacao_senha)
+        const diasDesdeAtualizacao = Math.floor((agora.getTime() - ultimaAtualizacao.getTime()) / (1000 * 60 * 60 * 24))
+        
+        if (diasDesdeAtualizacao >= plataforma.frequencia_atualizacao) {
+          senhasExpiradas++
+        } else if (diasDesdeAtualizacao >= plataforma.frequencia_atualizacao - 7) {
+          senhasExpirando++
+        }
+
+        custoTotal += Number(plataforma.custo_mensal || 0)
+      })
+
+      setDashboardData({
+        totalPlataformas: plataformas.length,
+        totalColaboradores: colaboradores.length,
+        colaboradoresAtivos: colaboradores.filter((c: any) => c.status === 'ATIVO').length,
+        senhasExpirando,
+        senhasExpiradas,
+        custoMensal: custoTotal,
+        ticketsAbertos: tickets.length,
+        visualizacoesHoje: visualizacoesHoje.length
+      })
+    } catch (error) {
+      console.error('Erro ao carregar dados do dashboard:', error)
+      // Manter dados padrão em caso de erro
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   // Verifica se o usuário é admin, se não for, redireciona para plataformas
   useEffect(() => {
-    if (user && !isAdmin()) {
+    if (user && !isAdminByEmail()) {
       router.push('/plataformas')
+    } else if (user && isAdminByEmail()) {
+      loadDashboardData()
     }
-  }, [user, isAdmin, router])
-
-  // Simular carregamento inicial
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false)
-    }, 800)
-    return () => clearTimeout(timer)
-  }, [])
+  }, [user, isAdminByEmail, router])
 
   const handleStatsCardClick = (type: 'acessos' | 'colaboradores' | 'senhas' | 'custos') => {
     switch (type) {
@@ -109,7 +172,7 @@ export default function Dashboard() {
   }
 
   // Se não é admin, não renderiza nada (ou loading) enquanto redireciona
-  if (user && !isAdmin()) {
+  if (user && !isAdminByEmail()) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -121,7 +184,7 @@ export default function Dashboard() {
   }
 
   // Se não é admin, não mostra o dashboard
-  if (!isAdmin()) {
+  if (!isAdminByEmail()) {
     return null
   }
 
