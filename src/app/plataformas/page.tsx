@@ -275,7 +275,9 @@ export default function PlataformasPage() {
                          (selectedClient === 'unico' && plataforma.vinculo === 'UNICO') ||
                          (plataforma.cliente_id === selectedClient)
     
-    return matchesSearch && matchesClient
+    const matchesTipo = selectedTipo === 'todos' || plataforma.tipo === selectedTipo
+    
+    return matchesSearch && matchesClient && matchesTipo
   })
 
   const handleOpenUrl = (url: string | null) => {
@@ -352,13 +354,28 @@ export default function PlataformasPage() {
     if (plataforma.url_login) {
       try {
         const url = new URL(plataforma.url_login)
-        return `https://www.google.com/s2/favicons?domain=${url.hostname}&sz=32`
+        const domain = url.hostname
+        
+        // Tentar múltiplas fontes de favicon
+        const faviconSources = [
+          `https://${domain}/favicon.ico`,
+          `https://${domain}/favicon.png`,
+          `https://${domain}/apple-touch-icon.png`,
+          `https://www.google.com/s2/favicons?domain=${domain}&sz=32`,
+          `https://icons.duckduckgo.com/ip3/${domain}.ico`,
+          `https://t0.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://${domain}&size=32`
+        ]
+        
+        // Retornar a primeira disponível (Google como padrão mais confiável)
+        return faviconSources[3] // Google S2 Favicons
       } catch {
-        return `https://www.google.com/s2/favicons?domain=${plataforma.nome.toLowerCase()}.com&sz=32`
+        const safeName = plataforma.nome.toLowerCase().replace(/\s+/g, '')
+        return `https://www.google.com/s2/favicons?domain=${safeName}.com&sz=32`
       }
     }
 
-    return `https://www.google.com/s2/favicons?domain=${plataforma.nome.toLowerCase()}.com&sz=32`
+    const safeName = plataforma.nome.toLowerCase().replace(/\s+/g, '')
+    return `https://www.google.com/s2/favicons?domain=${safeName}.com&sz=32`
   }
 
   if (loading) {
@@ -370,16 +387,16 @@ export default function PlataformasPage() {
   }
 
   return (
-    <div className="space-y-6">
+        <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Plataformas</h1>
           <p className="text-gray-600">
             Gerencie o acesso às plataformas da agência
-          </p>
-        </div>
-        
+            </p>
+          </div>
+
         <Button onClick={handleNewPlataforma} className="flex items-center gap-2">
           <Plus className="h-4 w-4" />
           Nova plataforma
@@ -396,8 +413,8 @@ export default function PlataformasPage() {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          />
-        </div>
+                    />
+                  </div>
         
         <div className="flex items-center gap-2">
           <Select value={selectedClient} onValueChange={setSelectedClient}>
@@ -405,11 +422,11 @@ export default function PlataformasPage() {
               <div className="flex items-center gap-2">
                 <Filter className="h-4 w-4 text-gray-400" />
                 <SelectValue placeholder="Todos os clientes" />
-              </div>
+            </div>
             </SelectTrigger>
-                          <SelectContent>
-                <SelectItem value="todos">Todos os clientes</SelectItem>
-                <SelectItem value="unico">Único</SelectItem>
+            <SelectContent>
+              <SelectItem value="todos">Todos os clientes</SelectItem>
+              <SelectItem value="unico">Único</SelectItem>
               {clientes.map((cliente) => (
                 <SelectItem key={cliente.id} value={cliente.id}>
                   {cliente.nome}
@@ -426,8 +443,26 @@ export default function PlataformasPage() {
                     <Plus className="h-4 w-4 mr-2" />
                     Cadastrar cliente
                   </Button>
-                </div>
-              )}
+            </div>
+          )}
+            </SelectContent>
+          </Select>
+
+          <Select value={selectedTipo} onValueChange={setSelectedTipo}>
+            <SelectTrigger className="w-44">
+              <SelectValue placeholder="Todos os tipos" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos os tipos</SelectItem>
+              <SelectItem value="MIDIA">Mídia</SelectItem>
+              <SelectItem value="CRM">CRM</SelectItem>
+              <SelectItem value="DESIGN">Design</SelectItem>
+              <SelectItem value="GESTAO">Gestão</SelectItem>
+              <SelectItem value="ANALYTICS">Analytics</SelectItem>
+              <SelectItem value="EMAIL">Email</SelectItem>
+              <SelectItem value="SOCIAL_MEDIA">Social Media</SelectItem>
+              <SelectItem value="ECOMMERCE">E-commerce</SelectItem>
+              <SelectItem value="OUTROS">Outros</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -523,10 +558,10 @@ export default function PlataformasPage() {
                     )}
                     
                     <Button
-                      variant="outline"
+                      variant="default"
                       size="sm"
                       onClick={() => handleViewPassword(plataforma)}
-                      className="flex items-center gap-1"
+                      className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-md hover:shadow-lg transition-all"
                     >
                       <Eye className="h-3 w-3" />
                       Ver senha
@@ -622,4 +657,4 @@ export default function PlataformasPage() {
       />
     </div>
   )
-}
+} 

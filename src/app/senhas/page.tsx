@@ -5,7 +5,9 @@ import { Search, Eye, Copy, Key, Lock, CheckCircle, Clock, XCircle } from 'lucid
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useAuth } from '@/lib/auth-context'
+import { supabase } from '@/lib/supabase'
 import { PasswordDrawer } from '@/components/plataformas/password-drawer'
 import { toast } from '@/components/ui/toast'
 
@@ -58,12 +60,98 @@ const mockSenhas = [
 ]
 
 export default function SenhasPage() {
-  const { user, updateLastActivity } = useAuth()
-  const [senhas, setSenhas] = useState(mockSenhas)
+  const { user, updateLastActivity, isAdminByEmail } = useAuth()
+  const [senhas, setSenhas] = useState<any[]>([])
+  const [clientes, setClientes] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
+  const [clientFilter, setClientFilter] = useState('todos')
+  const [tipoFilter, setTipoFilter] = useState('todos')
   const [selectedSenha, setSelectedSenha] = useState<any>(null)
   const [showPasswordDrawer, setShowPasswordDrawer] = useState(false)
+
+  useEffect(() => {
+    if (isAdminByEmail()) {
+      loadData()
+    }
+  }, [isAdminByEmail])
+
+  const loadData = async () => {
+    try {
+      updateLastActivity()
+      
+      // Carregar plataformas (senhas) do Supabase
+      const { data: plataformasData, error: plataformasError } = await supabase
+        .from('plataformas')
+        .select(`
+          *,
+          clientes!left(id, nome)
+        `)
+        .order('nome', { ascending: true })
+
+      if (plataformasError) throw plataformasError
+
+      // Carregar clientes
+      const { data: clientesData, error: clientesError } = await supabase
+        .from('clientes')
+        .select('*')
+        .order('nome', { ascending: true })
+
+      if (clientesError) throw clientesError
+
+      // Processar dados das plataformas para senhas
+      const processedSenhas = plataformasData.map((plataforma: any) => {
+        const agora = new Date()
+        const ultimaAtualizacao = new Date(plataforma.ultima_atualizacao_senha)
+        const diasDesdeAtualizacao = Math.floor((agora.getTime() - ultimaAtualizacao.getTime()) / (1000 * 60 * 60 * 24))
+        
+        let status = 'valid'
+        if (diasDesdeAtualizacao >= plataforma.frequencia_atualizacao) {
+          status = 'expired'
+        } else if (diasDesdeAtualizacao >= plataforma.frequencia_atualizacao - 7) {
+          status = 'expiring'
+        }
+
+        const proximaTroca = new Date(ultimaAtualizacao)
+        proximaTroca.setDate(proximaTroca.getDate() + plataforma.frequencia_atualizacao)
+
+        return {
+          id: plataforma.id,
+          plataforma: plataforma.nome,
+          email: plataforma.email_utilizado,
+          senha: '••••••••••••', // Ocultar senha
+          status,
+          ultimaAlteracao: plataforma.ultima_atualizacao_senha,
+          proximaTroca: proximaTroca.toISOString(),
+          tipo: plataforma.tipo,
+          cliente: plataforma.vinculo === 'CLIENTE' ? plataforma.clientes?.nome : null,
+          cliente_id: plataforma.cliente_id,
+          vinculo: plataforma.vinculo,
+          url_login: plataforma.url_login,
+          // Dados completos da plataforma para o drawer
+          plataformaCompleta: plataforma
+        }
+      })
+
+      setSenhas(processedSenhas)
+      setClientes(clientesData || [])
+      
+    } catch (error) {
+      console.error('Erro ao carregar dados:', error)
+      // Fallback para dados mockados em caso de erro
+      setSenhas(mockSenhas)
+      setClientes([])
+      
+      toast({
+        title: 'Aviso',
+        description: 'Carregando dados de demonstração',
+        variant: 'default'
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const getStatusInfo = (status: string) => {
     switch (status) {
@@ -104,12 +192,18 @@ export default function SenhasPage() {
 
   const filteredSenhas = senhas.filter(senha => {
     const matchesSearch = senha.plataforma.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         senha.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         senha.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          senha.cliente?.toLowerCase().includes(searchTerm.toLowerCase())
     
     const matchesStatus = !statusFilter || senha.status === statusFilter
     
-    return matchesSearch && matchesStatus
+    const matchesClient = clientFilter === 'todos' || 
+                         (clientFilter === 'unico' && senha.vinculo === 'UNICO') ||
+                         (senha.cliente_id === clientFilter)
+    
+    const matchesTipo = tipoFilter === 'todos' || senha.tipo === tipoFilter
+    
+    return matchesSearch && matchesStatus && matchesClient && matchesTipo
   })
 
   const handleViewPassword = (senha: any) => {
@@ -132,6 +226,29 @@ export default function SenhasPage() {
   }
 
   const stats = getStatsData()
+
+  // Verificar se é admin
+  if (!isAdminByEmail()) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <Lock className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Acesso restrito</h3>
+          <p className="text-gray-600">
+            Apenas administradores podem acessar o gerenciamento de senhas.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -207,16 +324,52 @@ export default function SenhasPage() {
           />
         </div>
         
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-        >
-          <option value="">Todos os status</option>
-          <option value="valid">Válidas</option>
-          <option value="expiring">Expirando</option>
-          <option value="expired">Expiradas</option>
-        </select>
+        <div className="flex gap-2">
+          <Select value={clientFilter} onValueChange={setClientFilter}>
+            <SelectTrigger className="w-44">
+              <SelectValue placeholder="Todos os clientes" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos os clientes</SelectItem>
+              <SelectItem value="unico">Único</SelectItem>
+              {clientes.map((cliente) => (
+                <SelectItem key={cliente.id} value={cliente.id}>
+                  {cliente.nome}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={tipoFilter} onValueChange={setTipoFilter}>
+            <SelectTrigger className="w-40">
+              <SelectValue placeholder="Todos os tipos" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos os tipos</SelectItem>
+              <SelectItem value="MIDIA">Mídia</SelectItem>
+              <SelectItem value="CRM">CRM</SelectItem>
+              <SelectItem value="DESIGN">Design</SelectItem>
+              <SelectItem value="GESTAO">Gestão</SelectItem>
+              <SelectItem value="ANALYTICS">Analytics</SelectItem>
+              <SelectItem value="EMAIL">Email</SelectItem>
+              <SelectItem value="SOCIAL_MEDIA">Social Media</SelectItem>
+              <SelectItem value="ECOMMERCE">E-commerce</SelectItem>
+              <SelectItem value="OUTROS">Outros</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-36">
+              <SelectValue placeholder="Todos status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">Todos os status</SelectItem>
+              <SelectItem value="valid">Válidas</SelectItem>
+              <SelectItem value="expiring">Expirando</SelectItem>
+              <SelectItem value="expired">Expiradas</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Senhas List */}
