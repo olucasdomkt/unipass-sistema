@@ -169,8 +169,9 @@ export function ProblemDrawer({ isOpen, onClose, onSuccess, plataforma }: Proble
                 </ol>
               </div>
             </div>
+          </div>
 
-          {/* Footer */}
+          {/* Footer */} 
           <div className="flex items-center justify-end gap-3 p-6 border-t bg-gray-50">
             <Button variant="outline" onClick={handleClose}>
               Cancelar

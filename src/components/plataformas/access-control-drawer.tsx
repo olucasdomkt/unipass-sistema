@@ -237,7 +237,7 @@ export function AccessControlDrawer({ isOpen, onClose, plataforma, onSuccess }: 
           </div>
 
           {/* Content */}
-          <div className="flex-1 overflow-y-auto p-6">
+          <div className="flex-1 overflow-y-auto p-6 space-y-6">
             {/* Ações em lote */}
             <Card className="mb-6">
               <CardHeader>
@@ -374,6 +374,8 @@ export function AccessControlDrawer({ isOpen, onClose, plataforma, onSuccess }: 
               )}
             </div>
           </div>
+
+          {/* Footer */}
         </div>
       </div>
     </div>
