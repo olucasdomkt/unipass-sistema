@@ -451,8 +451,7 @@ export default function PlataformasPage() {
             return (
               <Card 
                 key={plataforma.id} 
-                className="p-4 hover:shadow-md transition-shadow cursor-pointer"
-                onClick={() => handleOpenUrl(plataforma.url_login)}
+                className="p-4 hover:shadow-md transition-shadow"
               >
                 <div className="flex items-center gap-4">
                   {/* Favicon */}

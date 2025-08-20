@@ -103,8 +103,7 @@ export function ProblemDrawer({ isOpen, onClose, onSuccess, plataforma }: Proble
           </div>
 
           {/* Content */}
-          <div className="flex-1 overflow-y-auto">
-            <div className="p-6 space-y-6">
+          <div className="flex-1 overflow-y-auto p-6 space-y-6">
             {/* Platform Info */}
             <div className="bg-gray-50 p-4 rounded-lg">
               <h3 className="font-medium text-gray-900 mb-2">{plataforma.nome}</h3>
@@ -170,7 +169,6 @@ export function ProblemDrawer({ isOpen, onClose, onSuccess, plataforma }: Proble
                 </ol>
               </div>
             </div>
-          </div>
 
           {/* Footer */}
           <div className="flex items-center justify-end gap-3 p-6 border-t bg-gray-50">
@@ -185,7 +183,6 @@ export function ProblemDrawer({ isOpen, onClose, onSuccess, plataforma }: Proble
               <Send className="h-4 w-4" />
               {loading ? 'Enviando...' : 'Reportar problema'}
             </Button>
-            </div>
           </div>
         </div>
       </div>
