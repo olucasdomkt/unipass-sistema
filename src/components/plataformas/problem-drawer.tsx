@@ -85,26 +85,19 @@ export function ProblemDrawer({ isOpen, onClose, onSuccess, plataforma }: Proble
   return (
     <div className="fixed inset-0 z-50 overflow-hidden">
       <div className="absolute inset-0 bg-black bg-opacity-50" onClick={handleClose} />
-      
       <div className="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-xl">
         <div className="flex h-full flex-col">
-          {/* Header */}
           <div className="flex items-center justify-between p-6 border-b">
             <div className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-orange-600" />
               <h2 className="text-lg font-semibold">Reportar problema</h2>
             </div>
-            <button
-              onClick={handleClose}
-              className="text-gray-400 hover:text-gray-600"
-            >
+            <button onClick={handleClose} className="text-gray-400 hover:text-gray-600">
               <X className="h-6 w-6" />
             </button>
           </div>
 
-          {/* Content */}
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
-            {/* Platform Info */}
             <div className="bg-gray-50 p-4 rounded-lg">
               <h3 className="font-medium text-gray-900 mb-2">{plataforma.nome}</h3>
               {plataforma.email_utilizado && (
@@ -115,19 +108,13 @@ export function ProblemDrawer({ isOpen, onClose, onSuccess, plataforma }: Proble
               {plataforma.url_login && (
                 <p className="text-sm text-gray-600">
                   <strong>URL:</strong> 
-                  <a 
-                    href={plataforma.url_login} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:underline ml-1"
-                  >
+                  <a href={plataforma.url_login} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline ml-1">
                     {plataforma.url_login}
                   </a>
                 </p>
               )}
             </div>
 
-            {/* Problem Description */}
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -138,7 +125,7 @@ export function ProblemDrawer({ isOpen, onClose, onSuccess, plataforma }: Proble
                   onChange={(e) => setDescription(e.target.value)}
                   rows={6}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
-                  placeholder="Ex: Não consigo fazer login, a senha parece estar incorreta. Tentei redefinir mas não recebo o e-mail de recuperação..."
+                  placeholder="Ex: Não consigo fazer login, a senha parece estar incorreta..."
                   autoFocus
                 />
                 <p className="mt-1 text-xs text-gray-500">
@@ -146,7 +133,6 @@ export function ProblemDrawer({ isOpen, onClose, onSuccess, plataforma }: Proble
                 </p>
               </div>
 
-              {/* Problem Examples */}
               <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg">
                 <h4 className="text-sm font-medium text-blue-900 mb-2">Exemplos de problemas:</h4>
                 <ul className="text-xs text-blue-700 space-y-1">
@@ -158,7 +144,6 @@ export function ProblemDrawer({ isOpen, onClose, onSuccess, plataforma }: Proble
                 </ul>
               </div>
 
-              {/* Process Info */}
               <div className="bg-gray-50 p-3 rounded-lg">
                 <h4 className="text-sm font-medium text-gray-900 mb-2">Como funciona?</h4>
                 <ol className="text-xs text-gray-600 space-y-1">
@@ -171,16 +156,11 @@ export function ProblemDrawer({ isOpen, onClose, onSuccess, plataforma }: Proble
             </div>
           </div>
 
-          {/* Footer */}
           <div className="flex items-center justify-end gap-3 p-6 border-t bg-gray-50">
             <Button variant="outline" onClick={handleClose}>
               Cancelar
             </Button>
-            <Button 
-              onClick={handleSubmit} 
-              disabled={loading || !description.trim()}
-              className="flex items-center gap-2"
-            >
+            <Button onClick={handleSubmit} disabled={loading || !description.trim()} className="flex items-center gap-2">
               <Send className="h-4 w-4" />
               {loading ? 'Enviando...' : 'Reportar problema'}
             </Button>
